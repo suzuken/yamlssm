@@ -30,13 +30,13 @@ func (d *decoder) expand(encrypted string) (string, error) {
 	return *resp.Parameter.Value, nil
 }
 
-func (d *decoder) override(out interface{}) {
+func (d *decoder) override(out interface{}) error {
 	val := reflect.ValueOf(out).Elem()
 	if !val.IsValid() {
-		return
+		return nil
 	}
 	if val.Kind() != reflect.Struct {
-		return
+		return nil
 	}
 	for i := 0; i < val.NumField(); i++ {
 		f := val.Field(i)
@@ -50,8 +50,7 @@ func (d *decoder) override(out interface{}) {
 		if strings.HasPrefix(v, "ssm://") {
 			actual, err := d.expand(v)
 			if err != nil {
-				// key hasn't found in ssm. path through.
-				continue
+				return err
 			}
 			if f.CanSet() {
 				// override
@@ -59,6 +58,7 @@ func (d *decoder) override(out interface{}) {
 			}
 		}
 	}
+	return nil
 }
 
 func newDecoder() *decoder {
@@ -76,6 +76,5 @@ func Unmarshal(in []byte, out interface{}) error {
 		return err
 	}
 	d := newDecoder()
-	d.override(out)
-	return nil
+	return d.override(out)
 }

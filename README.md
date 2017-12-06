@@ -30,6 +30,11 @@ bar: test
 fmt.Print(t.Foo) // -> value of prod.database.name on your ssm
 ```
 
+## Notice
+
+* Only supports default encryption key of your account.
+* To set aws region, please use `AWS_REGION` environment variables. This behavior based on aws-sdk-go. If you run yamlssm on your EC2 or some kind of instance on AWS, it's use that environent on default.
+
 ## References
 
 http://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-paramstore.html
