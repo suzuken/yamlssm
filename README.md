@@ -11,7 +11,7 @@ foo: ssm://prod.database.name
 bar: test
 ```
 
-`ssm://prod.database.name` should be set on you (System Manager Parameter Store)[http://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-paramstore.html]. If you set, yamlssm set a value stored in parameter store.
+`ssm://prod.database.name` should be set on you [System Manager Parameter Store](http://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-paramstore.html). If you set, yamlssm set a value stored in parameter store.
 
 ```go
 type T struct {
