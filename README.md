@@ -15,15 +15,15 @@ bar: test
 
 ```go
 type T struct {
-	Foo string
-	Bar string
+  Foo string `yaml:"foo"`
+  Bar string `yaml:"bar"`
 }
 var t T
 
-if err := yamlssm.Unmarshal([]byte[`
+if err := yamlssm.Unmarshal([]byte(`
 foo: ssm://prod.database.name
 bar: test
-`], &t); err != nil {
+`), &t); err != nil {
     // ...
 }
 
@@ -33,7 +33,8 @@ fmt.Print(t.Foo) // -> value of prod.database.name on your ssm
 ## Notice
 
 * Only supports default encryption key of your account.
-* To set aws region, please use `AWS_REGION` environment variables. This behavior based on aws-sdk-go. If you run yamlssm on your EC2 or some kind of instance on AWS, it's use that environent on default.
+* To set aws region, please use `AWS_REGION` environment variables. (ex. `export AWS_REGION='ap-northeast-1'`)
+* This behavior based on aws-sdk-go. If you run yamlssm on your EC2 or some kind of instance on AWS, it's use that environment on default.
 
 ## References
 
