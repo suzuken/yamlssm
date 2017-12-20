@@ -14,20 +14,31 @@ bar: test
 `ssm://prod.database.name` should be set on you [System Manager Parameter Store](http://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-paramstore.html). If you set, yamlssm set a value stored in parameter store.
 
 ```go
+package main
+
+import (
+  "fmt"
+
+  "github.com/suzuken/yamlssm"
+)
+
 type T struct {
   Foo string `yaml:"foo"`
   Bar string `yaml:"bar"`
 }
-var t T
 
-if err := yamlssm.Unmarshal([]byte(`
+func main() {
+  t := T{}
+  if err := yamlssm.Unmarshal([]byte(`
 foo: ssm://prod.database.name
 bar: test
-`), &t); err != nil {
-    // ...
-}
+`), &t)
+  err != nil {
+    fmt.Println(err)
+  }
 
-fmt.Print(t.Foo) // -> value of prod.database.name on your ssm
+  fmt.Println(t.Foo) // -> value of prod.database.name on your ssm
+}
 ```
 
 ## Notice
