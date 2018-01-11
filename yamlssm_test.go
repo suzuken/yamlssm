@@ -55,12 +55,49 @@ func TestSSMUnmarshal(t *testing.T) {
 		value    string
 		expected interface{}
 	}{
+		// string
+		{
+			"a",
+			"a",
+		},
+		// string decrypt
+		{
+			"ssm://encrypt_parameter",
+			"decrypted",
+		},
 		// struct
 		{
 			"a: a\nb: ssm://encrypt_parameter",
 			&struct {
 				A, B string
 			}{A: "a", B: "decrypted"},
+		},
+		// struct slice
+		{
+			"a:\n - b\n - ssm://encrypt_parameter",
+			&struct{ A []string }{A: []string{"b", "decrypted"}},
+		},
+		// map
+		{
+			"seq:\n a",
+			&map[string]string{"seq": "a"},
+		},
+		// map decrypt
+		{
+			"seq:\n ssm://encrypt_parameter",
+			&map[string]string{"seq": "decrypted"},
+		},
+		// map slice
+		{
+			"seq:\n - a\n - ssm://encrypt_parameter",
+			&map[string][]string{"seq": []string{"a", "decrypted"}},
+		},
+		// map struct
+		{
+			"seq:\n a: a\n b: ssm://encrypt_parameter",
+			&map[string]struct {
+				A, B string
+			}{"seq": {A: "a", B: "decrypted"}},
 		},
 	}
 
@@ -69,8 +106,11 @@ func TestSSMUnmarshal(t *testing.T) {
 
 		var out interface{}
 		switch v.Kind() {
+		case reflect.String:
+			out = reflect.New(v).Interface()
 		case reflect.Ptr:
 			out = reflect.New(v.Elem()).Interface()
+
 		default:
 			t.Fatalf("missing case for %s", v)
 		}
