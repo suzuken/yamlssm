@@ -1,59 +1,91 @@
-package yamlssm_test
+package yamlssm
 
 import (
-	"fmt"
+	"reflect"
 	"testing"
 
-	"github.com/suzuken/yamlssm"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
+	yaml "gopkg.in/yaml.v2"
 )
 
-func Example() {
-	type T struct {
-		Key string
-	}
-	var t T
-
-	// t.Key will be filled by your ssm value set by `your.ssm.key` automatically.
-	yamlssm.Unmarshal([]byte(`key: ssm://your.ssm.key`), &t)
-
-	// YAML file without ssm:// value is working as intended.
-	yamlssm.Unmarshal([]byte(`key: value`), &t)
-
-	fmt.Print(t.Key)
-	// Output:
-	// value
+// toPtr retrun string pointer
+func toPtr(s string) *string {
+	return &s
 }
 
-func TestNormalYAML(t *testing.T) {
-	in := []byte(`key: normal`)
-
-	type T struct {
-		Key string
+// unmarshal is Test function for func Unmarshal()
+// because use SSMmock.
+func unmarshal(in []byte, out interface{}) error {
+	if err := yaml.Unmarshal(in, out); err != nil {
+		return err
 	}
 
-	var tt T
-	if err := yamlssm.Unmarshal(in, &tt); err != nil {
-		t.Errorf("unmarshal error: %s", err)
-	}
+	mock := &mockSSMClient{}
+	d := newTestssmDecrypter(mock)
+	return d.override(out)
+}
 
-	if tt.Key != "normal" {
-		t.Errorf("want %s, got %s", "normal", tt.Key)
+// mockSSMClient stores SSM interface for mock
+type mockSSMClient struct {
+	ssmiface.SSMAPI
+}
+
+// newTestssmDecrypter returns a new ssmDecrypter for mock.
+func newTestssmDecrypter(mock ssmiface.SSMAPI) *ssmDecrypter {
+	return &ssmDecrypter{
+		svc: mock,
 	}
 }
 
-func TestReplace(t *testing.T) {
-	in := []byte(`key: ssm://testkey`)
-
-	type T struct {
-		Key string
+// GetParameter returns "decrypted" that is Decrypted SSM parameter.
+func (m *mockSSMClient) GetParameter(i *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+	parameter := &ssm.Parameter{
+		Value: aws.String("decrypted"),
 	}
 
-	var tt T
-	if err := yamlssm.Unmarshal(in, &tt); err != nil {
-		t.Errorf("unmarshal error: %s", err)
+	return &ssm.GetParameterOutput{
+		Parameter: parameter,
+	}, nil
+}
+
+func TestSSMUnmarshal(t *testing.T) {
+	cases := []struct {
+		value    string
+		expected interface{}
+	}{
+		// struct
+		{
+			"a: a\nb: ssm://encrypt_parameter",
+			&struct {
+				A, B string
+			}{A: "a", B: "decrypted"},
+		},
 	}
 
-	if tt.Key != "normal" {
-		t.Errorf("want %s, got %s", "normal", tt.Key)
+	for _, c := range cases {
+		v := reflect.ValueOf(c.expected).Type()
+
+		var out interface{}
+		switch v.Kind() {
+		case reflect.Ptr:
+			out = reflect.New(v.Elem()).Interface()
+		default:
+			t.Fatalf("missing case for %s", v)
+		}
+
+		if err := unmarshal([]byte(c.value), out); err != nil {
+			t.Fatalf("failed unmarshal: %s", err)
+		}
+
+		switch c.expected.(type) {
+		case string:
+			c.expected = toPtr(c.expected.(string))
+		}
+
+		if !reflect.DeepEqual(c.expected, out) {
+			t.Errorf("want %s got %s", c.expected, out)
+		}
 	}
 }
