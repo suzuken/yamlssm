@@ -9,14 +9,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 )
 
-type decoder struct {
+// ssmDecrypter stores the AWS Session used for SSM decrypter.
+type ssmDecrypter struct {
 	sess *session.Session
-	svc  *ssm.SSM
+	svc  ssmiface.SSMAPI
 }
 
-func (d *decoder) expand(encrypted string) (string, error) {
+func (d *ssmDecrypter) expand(encrypted string) (string, error) {
 	trimed := strings.TrimPrefix(encrypted, "ssm://")
 
 	params := &ssm.GetParameterInput{
@@ -30,7 +32,7 @@ func (d *decoder) expand(encrypted string) (string, error) {
 	return *resp.Parameter.Value, nil
 }
 
-func (d *decoder) override(out interface{}) error {
+func (d *ssmDecrypter) override(out interface{}) error {
 	val := reflect.ValueOf(out).Elem()
 	if !val.IsValid() {
 		return nil
@@ -61,10 +63,10 @@ func (d *decoder) override(out interface{}) error {
 	return nil
 }
 
-func newDecoder() *decoder {
+func newssmDecrypter() *ssmDecrypter {
 	sess := session.New()
 	svc := ssm.New(sess)
-	return &decoder{sess, svc}
+	return &ssmDecrypter{sess, svc}
 }
 
 // Unmarshal works same as gopkg.in/yaml.v2.
@@ -75,6 +77,6 @@ func Unmarshal(in []byte, out interface{}) error {
 	if err := yaml.Unmarshal(in, out); err != nil {
 		return err
 	}
-	d := newDecoder()
+	d := newssmDecrypter()
 	return d.override(out)
 }
