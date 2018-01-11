@@ -102,6 +102,7 @@ func TestSSMUnmarshal(t *testing.T) {
 	}
 
 	for _, c := range cases {
+		// initialize type as out variable from c.expected.
 		v := reflect.ValueOf(c.expected).Type()
 
 		var out interface{}
@@ -110,7 +111,6 @@ func TestSSMUnmarshal(t *testing.T) {
 			out = reflect.New(v).Interface()
 		case reflect.Ptr:
 			out = reflect.New(v.Elem()).Interface()
-
 		default:
 			t.Fatalf("missing case for %s", v)
 		}
