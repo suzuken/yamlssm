@@ -59,9 +59,7 @@ func TestSSMUnmarshal(t *testing.T) {
 		{
 			"a",
 			"a",
-		},
-		// string decrypt
-		{
+		}, {
 			"ssm://encrypt_parameter",
 			"decrypted",
 		},
@@ -99,8 +97,24 @@ func TestSSMUnmarshal(t *testing.T) {
 				A, B string
 			}{"seq": {A: "a", B: "decrypted"}},
 		},
+		// Nulls from spec
+		{
+			"empty:",
+			&map[string]interface{}{"empty": nil},
+		}, {
+			"canonical: ~",
+			&map[string]interface{}{"canonical": nil},
+		}, {
+			"english: null",
+			&map[string]interface{}{"english": nil},
+		}, {
+			"~: null key",
+			&map[interface{}]string{nil: "null key"},
+		}, {
+			"empty:",
+			&map[string]*bool{"empty": nil},
+		},
 	}
-
 	for _, c := range cases {
 		// initialize type as out variable from c.expected.
 		v := reflect.ValueOf(c.expected).Type()
@@ -127,5 +141,6 @@ func TestSSMUnmarshal(t *testing.T) {
 		if !reflect.DeepEqual(c.expected, out) {
 			t.Errorf("want %s got %s", c.expected, out)
 		}
+		t.Logf("pass case: \n%v", c.value)
 	}
 }

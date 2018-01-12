@@ -37,6 +37,10 @@ func (d *ssmDecrypter) expand(encrypted string) (string, error) {
 func (d *ssmDecrypter) override(out interface{}) error {
 	v := reflect.ValueOf(out)
 
+	if out == nil {
+		return nil
+	}
+
 	if !v.IsValid() {
 		return nil
 	}
@@ -56,6 +60,10 @@ func (d *ssmDecrypter) override(out interface{}) error {
 func (d *ssmDecrypter) decryptCopyRecursive(copy, original reflect.Value) {
 	switch original.Kind() {
 	case reflect.Interface:
+		if original.IsNil() {
+			return
+		}
+
 		originalValue := original.Elem()
 		copyValue := reflect.New(originalValue.Type()).Elem()
 
