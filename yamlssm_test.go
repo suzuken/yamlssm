@@ -116,31 +116,31 @@ func TestSSMUnmarshal(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		// initialize type as out variable from c.expected.
-		v := reflect.ValueOf(c.expected).Type()
+		t.Run(c.value, func(t *testing.T) {
+			v := reflect.ValueOf(c.expected).Type()
 
-		var out interface{}
-		switch v.Kind() {
-		case reflect.String:
-			out = reflect.New(v).Interface()
-		case reflect.Ptr:
-			out = reflect.New(v.Elem()).Interface()
-		default:
-			t.Fatalf("missing case for %s", v)
-		}
+			var out interface{}
+			switch v.Kind() {
+			case reflect.String:
+				out = reflect.New(v).Interface()
+			case reflect.Ptr:
+				out = reflect.New(v.Elem()).Interface()
+			default:
+				t.Fatalf("missing case for %s", v)
+			}
 
-		if err := unmarshal([]byte(c.value), out); err != nil {
-			t.Fatalf("failed unmarshal: %s", err)
-		}
+			if err := unmarshal([]byte(c.value), out); err != nil {
+				t.Fatalf("failed unmarshal: %s", err)
+			}
 
-		switch c.expected.(type) {
-		case string:
-			c.expected = toPtr(c.expected.(string))
-		}
+			switch c.expected.(type) {
+			case string:
+				c.expected = toPtr(c.expected.(string))
+			}
 
-		if !reflect.DeepEqual(c.expected, out) {
-			t.Errorf("want %s got %s", c.expected, out)
-		}
-		t.Logf("pass case: \n%v", c.value)
+			if !reflect.DeepEqual(c.expected, out) {
+				t.Errorf("want %s got %s", c.expected, out)
+			}
+		})
 	}
 }
