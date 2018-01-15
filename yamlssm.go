@@ -37,10 +37,6 @@ func (d *ssmDecrypter) expand(encrypted string) (string, error) {
 func (d *ssmDecrypter) override(out interface{}) error {
 	v := reflect.ValueOf(out)
 
-	if out == nil {
-		return nil
-	}
-
 	if !v.IsValid() {
 		return nil
 	}
