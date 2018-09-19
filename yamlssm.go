@@ -117,7 +117,7 @@ func (d *ssmDecrypter) decrypt(s string) string {
 
 // newssmDecrypter returns a new ssmDecrypter.
 func newssmDecrypter() *ssmDecrypter {
-	sess := session.New()
+	sess, _ := session.NewSession()
 	svc := ssm.New(sess)
 	return &ssmDecrypter{sess, svc}
 }
