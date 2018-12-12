@@ -47,42 +47,52 @@ func (d *ssmDecrypter) override(out interface{}) error {
 
 	copy := reflect.New(v.Type()).Elem()
 
-	d.decryptCopyRecursive(copy, v)
+	if err := d.decryptCopyRecursive(copy, v); err != nil {
+		return err
+	}
 	v.Set(copy)
 	return nil
 }
 
 // decryptCopyRecursive decrypts ssm and does actual copying of the interface.
-func (d *ssmDecrypter) decryptCopyRecursive(copy, original reflect.Value) {
+func (d *ssmDecrypter) decryptCopyRecursive(copy, original reflect.Value) error {
 	switch original.Kind() {
 	case reflect.Interface:
 		if original.IsNil() {
-			return
+			return nil
 		}
 
 		originalValue := original.Elem()
 		copyValue := reflect.New(originalValue.Type()).Elem()
 
-		d.decryptCopyRecursive(copyValue, originalValue)
+		if err := d.decryptCopyRecursive(copyValue, originalValue); err != nil {
+			return nil
+		}
 		copy.Set(copyValue)
 
 	case reflect.Ptr:
 		originalValue := original.Elem()
 		if !originalValue.IsValid() {
-			return
+			return nil
 		}
 		copy.Set(reflect.New(originalValue.Type()))
-		d.decryptCopyRecursive(copy.Elem(), originalValue)
+		if err := d.decryptCopyRecursive(copy.Elem(), originalValue); err != nil {
+			return err
+		}
 
 	case reflect.Struct:
 		for i := 0; i < original.NumField(); i++ {
-			d.decryptCopyRecursive(copy.Field(i), original.Field(i))
+			if err := d.decryptCopyRecursive(copy.Field(i), original.Field(i)); err != nil {
+				return err
+			}
 		}
 
 	case reflect.Slice:
 		copy.Set(reflect.MakeSlice(original.Type(), original.Len(), original.Cap()))
 		for i := 0; i < original.Len(); i++ {
-			d.decryptCopyRecursive(copy.Index(i), original.Index(i))
+			if err := d.decryptCopyRecursive(copy.Index(i), original.Index(i)); err != nil {
+				return err
+			}
 		}
 
 	case reflect.Map:
@@ -92,27 +102,33 @@ func (d *ssmDecrypter) decryptCopyRecursive(copy, original reflect.Value) {
 			originalValue := original.MapIndex(key)
 			copyValue := reflect.New(originalValue.Type()).Elem()
 
-			d.decryptCopyRecursive(copyValue, originalValue)
+			if err := d.decryptCopyRecursive(copyValue, originalValue); err != nil {
+				return err
+			}
 			copy.SetMapIndex(key, copyValue)
 		}
 
 	case reflect.String:
 		if copy.CanSet() {
-			copy.SetString(d.decrypt(original.Interface().(string)))
+			str, err := d.decrypt(original.Interface().(string))
+			if err != nil {
+				return err
+			}
+			copy.SetString(str)
 		}
 
 	default:
 		copy.Set(original)
 	}
+	return nil
 }
 
 // deccrypt decrypts string begins with "ssm://".
-func (d *ssmDecrypter) decrypt(s string) string {
+func (d *ssmDecrypter) decrypt(s string) (string, error) {
 	if strings.HasPrefix(s, "ssm://") {
-		actual, _ := d.expand(s)
-		return actual
+		return d.expand(s)
 	}
-	return s
+	return s, nil
 }
 
 // newssmDecrypter returns a new ssmDecrypter.
